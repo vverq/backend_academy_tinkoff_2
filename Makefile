@@ -9,3 +9,6 @@ run:
 .PHONY: swagger
 swagger:
 	python3 -m webbrowser "http://127.0.0.1:5000/docs"
+
+a:
+	python3 -m pytest backend/tests/tests.py -vv
