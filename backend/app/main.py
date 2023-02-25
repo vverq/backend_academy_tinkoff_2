@@ -13,9 +13,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 
-from backend.app.connection_manager import ConnectionManager
-from backend.app.models import User, Friends
-from backend.app.core.config import settings
+from app.connection_manager import ConnectionManager
+from app.models import User, Friends
+from app.core.config import settings
 
 USERS = dict()
 FRIENDS = dict()
