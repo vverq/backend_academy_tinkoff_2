@@ -1,4 +1,10 @@
 import jwt
+import uuid
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
+from pydantic import BaseModel, EmailStr, Field
 from uuid import UUID
 from fastapi import (
     FastAPI,
@@ -100,6 +106,7 @@ async def update_user(user_id: UUID, user: User):
     if user_id in USERS.keys():
         USERS[user_id] = user
         return user
+    raise HTTPException(status_code=404, detail="User not found")
 
 
 @app.get("/users/{user_id}", tags=["user"], description="Get user by id")
@@ -114,17 +121,13 @@ async def get_users():
     return USERS
 
 
-@app.post(
-    "/users/friends/",
-    tags=["friendship"],
-    description="Create friendship between user1 and user2 by their ids",
-)
-async def create_friends(friend_id: UUID, user: User = Depends(get_current_user)):
-    if friend_id in USERS.keys():
-        friends = Friends(id_friend_one=user.id, id_friend_two=friend_id)
+@app.post("/users/friends/", tags=["friendship"], description="Create friendship between user1 and user2 by their ids")
+async def create_friends(friends: Friends):
+    if friends.id_friend_one in USERS.keys() and friends.id_friend_two in USERS.keys():
         FRIENDS[friends.id] = friends
-        return friends
-    raise HTTPException(status_code=404, detail=f"User with id {friend_id} not found")
+        return
+    raise HTTPException(status_code=404,
+                        detail=f"User with id {friends.id_friend_one} or with id {friends.id_friend_two} not found")
 
 
 html = """
