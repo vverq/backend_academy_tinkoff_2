@@ -10,16 +10,9 @@ def test_get_empty_users():
         assert response.json() == {}
 
 
-def test_create_user():
-    with TestClient(app) as client:
-        response = client.post("/users/", json={"name":"Ivan", "age":22, "description": "I like travelling", "email": "123@gmail.com"})
-        assert response.status_code == 200
-        assert UUID(response.json(), version=4) is not None
-
-
 def test_get_users():
-    user1 = {"name":"Ivan", "age":22, "description": "I like travelling", "email": "123@gmail.com"}
-    user2 = {"name":"Elena", "age":21, "description": ":))", "email": "lol@yandex.ru"}
+    user1 = {"name": "Ivan", "age": 22, "description": "I like travelling", "email": "123@gmail.com"}
+    user2 = {"name": "Elena", "age": 21, "description": ":))", "email": "lol@yandex.ru"}
     with TestClient(app) as client:
         id1 = client.post("/users/", json=user1).json()
         id2 = client.post("/users/", json=user2).json()
@@ -59,8 +52,8 @@ def test_update_user():
 
 
 def test_create_friendship():
-    user1 = {"name":"Ivan", "age":22, "description": "I like travelling", "email": "123@gmail.com"}
-    user2 = {"name":"Elena", "age":21, "description": ":))", "email": "lol@yandex.ru"}
+    user1 = {"name": "Ivan", "age": 22, "description": "I like travelling", "email": "123@gmail.com"}
+    user2 = {"name": "Elena", "age": 21, "description": ":))", "email": "lol@yandex.ru"}
     with TestClient(app) as client:
         id1 = client.post("/users/", json=user1).json()
         id2 = client.post("/users/", json=user2).json()
@@ -69,3 +62,11 @@ def test_create_friendship():
         response = client.post("/users/friends/", json={"id_friend_one": id1, "id_friend_two": id2})
         assert response.status_code == 200
         assert response.json() is None
+
+
+def test_create_user():
+    with TestClient(app) as client:
+        user = {"name": "Ivan", "age": 22, "description": "I like travelling", "email": "123@gmail.com"}
+        response = client.post("/users/", json=user)
+        assert response.status_code == 200
+        assert UUID(response.json(), version=4) is not None
