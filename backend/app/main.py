@@ -52,6 +52,7 @@ async def update_user(user_id: UUID, user: User):
     if user_id in USERS.keys():
         USERS[user_id] = user
         return user
+    raise HTTPException(status_code=404, detail="User not found")
 
 
 @app.get("/users/{user_id}", tags=["user"], description="Get user by id")
@@ -68,9 +69,8 @@ async def get_users():
 
 @app.post("/users/friends/", tags=["friendship"], description="Create friendship between user1 and user2 by their ids")
 async def create_friends(friends: Friends):
-    if friends.id_friend_one in USERS.keys():
-        if friends.id_friend_two in USERS.keys():
-            FRIENDS[friends.id] = friends
-            return
-        raise HTTPException(status_code=404, detail=f"User with id {friends.id_friend_two} not found")
-    raise HTTPException(status_code=404, detail=f"User with id {friends.id_friend_one} not found")
+    if friends.id_friend_one in USERS.keys() and friends.id_friend_two in USERS.keys():
+        FRIENDS[friends.id] = friends
+        return
+    raise HTTPException(status_code=404,
+                        detail=f"User with id {friends.id_friend_one} or with id {friends.id_friend_two} not found")
