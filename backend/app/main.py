@@ -125,7 +125,7 @@ async def get_users():
 async def create_friends(friends: Friends):
     if friends.id_friend_one in USERS.keys() and friends.id_friend_two in USERS.keys():
         FRIENDS[friends.id] = friends
-        return
+        return friends
     raise HTTPException(status_code=404,
                         detail=f"User with id {friends.id_friend_one} or with id {friends.id_friend_two} not found")
 

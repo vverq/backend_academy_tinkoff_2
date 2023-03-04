@@ -171,9 +171,9 @@ def test_create_friendship():
         response = client.post(
             "/users/friends/",
             headers={"Authorization": f"Bearer {token}"},
-            params={"friend_id": id1},
+            json={"id_friend_one": id1, "id_friend_two": id2},
         )
         assert response.status_code == 200
         response = response.json()
-        assert response["id_friend_one"] == id2
-        assert response["id_friend_two"] == id1
+        assert response["id_friend_one"] == id1
+        assert response["id_friend_two"] == id2
