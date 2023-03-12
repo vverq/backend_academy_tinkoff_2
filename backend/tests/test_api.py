@@ -7,7 +7,7 @@ def test_get_empty_users():
     with TestClient(app) as client:
         response = client.get("/users/")
         assert response.status_code == 200
-        assert response.json() == {}
+        assert response.json() == []
         client.close()
 
 
@@ -37,14 +37,13 @@ def test_get_users():
         assert response.status_code == 200
         new_users = response.json()
         i = 0
-        for id, new_user in new_users.items():
-            user = users[i]
-            assert id == ids[i]
-            assert new_user["name"] == user["name"]
-            assert new_user["age"] == user["age"]
-            assert new_user["description"] == user["description"]
-            assert new_user["email"] == user["email"]
-            assert new_user["password"] != user["password"]
+        for user in new_users:
+            assert user["id"] == ids[i]
+            assert user["name"] == user["name"]
+            assert user["age"] == user["age"]
+            assert user["description"] == user["description"]
+            assert user["email"] == user["email"]
+            assert user["password"] != user["password"]
             i += 1
         client.close()
 
@@ -135,7 +134,7 @@ def test_create_user():
                 "name": "Ivan",
                 "age": 22,
                 "description": "I like travelling",
-                "email": "123@gmail.com",
+                "email": "heq@gmail.com",
                 "password": "123",
             },
         )
