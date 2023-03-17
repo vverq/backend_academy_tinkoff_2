@@ -19,7 +19,7 @@ from app.connection_manager import ConnectionManager
 from app.core.config import settings
 from app.schemas import User, Friends
 
-from backend.app import crud, models, schemas
+from app import crud, models, schemas
 from .database import SessionLocal, engine
 
 JWT_SECRET = "secret"
