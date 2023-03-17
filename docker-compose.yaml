@@ -11,9 +11,10 @@ services:
     ports:
         - 5432:5432
   my-app:
+    container_name: "my-app"
     build: .
     ports:
-      - 5000:5000
-    restart: on-failure
+      - 5050:5050
+    restart: always
     depends_on:
       - db
