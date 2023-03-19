@@ -103,15 +103,16 @@ def test_update_user():
         "name": "Ivan",
         "age": 22,
         "description": "I like travelling",
-        "email": "vanya2014@gmail.com",
-        "password": "123",
+        "email": "vanya2015@gmail.com",
+        "password": "123"
     }
     updated_user = {
         "name": "Ivan",
         "age": 23,
         "description": "I like travelling and cats",
-        "email": "vanya007@gmail.com",
+        "email": "vanya001@gmail.com",
         "password": "123",
+        "login_date": None,
     }
     with TestClient(app) as client:
         id = client.post("/users/", json=user).json()

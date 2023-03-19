@@ -1,7 +1,7 @@
+import datetime
 from uuid import UUID
-
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
-
 from . import models, schemas
 
 
@@ -21,9 +21,8 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-# todo можно без этой явной передачи полeй, а **user.dict()
 def create_user(db: Session, user: schemas.User):
-    db_item = models.User(id=user.id, name=user.name, description=user.description, age=user.age, email=user.email, password=user.password)
+    db_item = models.User(**user.dict())
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
@@ -51,3 +50,15 @@ def find_friendship(db: Session, friend_id: UUID, user_id: UUID):
             (models.Friendship.friend_id_one == friend_id) & (models.Friendship.friend_id_two == user_id)) |
             (models.Friendship.friend_id_one == user_id) & (models.Friendship.friend_id_two == friend_id)).first()
 
+
+def update_login_date(db: Session, user_id: UUID):
+    db.query(models.User).filter(models.User.id == user_id).update({
+        "login_date": datetime.datetime.utcnow()
+    })
+    db.commit()
+
+
+def get_friends(db: Session, user_id: UUID):
+    return db.query(models.User).filter(
+        (models.Friendship.friend_id_one == user_id) | (models.Friendship.friend_id_two == user_id)
+    ).filter(models.User.id != user_id).order_by(desc(models.User.id)).all()

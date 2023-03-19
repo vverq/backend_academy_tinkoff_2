@@ -13,13 +13,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
-from app.connection_manager import ConnectionManager
-from app.core.config import settings
-from app.schemas import User, Friends
+from backend.app.connection_manager import ConnectionManager
+from backend.app.core.config import settings
+from backend.app.schemas import User, Friends
 
-from app import crud, models, schemas
+from backend.app import crud, models, schemas
 from .database import SessionLocal, engine
 
 JWT_SECRET = "secret"
@@ -28,7 +29,8 @@ JWT_ALGORITHM = "HS256"
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-models.Base.metadata.create_all(bind=engine)
+if not inspect(engine).has_table(models.User.__tablename__):
+    models.Base.metadata.create_all(bind=engine)
 
 
 def get_db():
@@ -94,6 +96,7 @@ async def create_user(user: schemas.User, db: Session = Depends(get_db)):
 @app.post("/users/login", tags=["user"], description="Login user")
 async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(form_data.username, form_data.password, db)
+    crud.update_login_date(db, user.id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -141,6 +144,11 @@ async def create_friends(friends: Friends, db: Session = Depends(get_db)):
     raise HTTPException(status_code=404,
                         detail=f"User with id {friends.id_friend_one} or with id {friends.id_friend_two} not found")
 
+# todo fix
+@app.get("/get_friends/", tags=["users"], description="Get all users")
+async def get_users(user_id: UUID, db: Session = Depends(get_db)):
+    users = crud.get_friends(db, user_id)
+    return users
 
 html = """
 <!DOCTYPE html>

@@ -5,9 +5,9 @@ services:
     environment:
       POSTGRES_USER: 'admin'
       POSTGRES_PASSWORD: 'pwd'
-      POSTGRES_DB: 'project'
-#    volumes:
-#      - ./postgres_data:/var/lib/postgresql
+      POSTGRES_DB: 'postgres'
+    volumes:
+      - ./postgres_data:/var/lib/postgresql
     ports:
         - 5432:5432
   my-app:
