@@ -16,11 +16,11 @@ from passlib.context import CryptContext
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
-from backend.app.connection_manager import ConnectionManager
-from backend.app.core.config import settings
-from backend.app.schemas import User, Friends
+from app.connection_manager import ConnectionManager
+from app.core.config import settings
+from app.schemas import User, Friends
 
-from backend.app import crud, models, schemas
+from app import crud, models, schemas
 from .database import SessionLocal, engine
 
 JWT_SECRET = "secret"
