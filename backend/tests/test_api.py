@@ -1,6 +1,6 @@
 from uuid import UUID
 import requests
-from backend.app.main import password_context
+from app.main import password_context
 
 URL = "http://localhost:5000"
 
