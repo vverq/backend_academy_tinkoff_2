@@ -1,64 +1,64 @@
 import datetime
 from uuid import UUID
-from sqlalchemy import desc
-from sqlalchemy.orm import Session
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 from . import models, schemas
 
 
-def get_user(db: Session, user_id: UUID):
-    return db.query(models.User).filter(models.User.id == user_id).first()
+async def get_user(db: AsyncSession, user_id: UUID):
+    return await db.execute(select(models.User).where(models.User.id == user_id))
 
 
-def get_user_by_email(db: Session, email: str):
-    return db.query(models.User).filter(models.User.email == email).first()
+async def get_user_by_email(db: AsyncSession, email: str):
+    return await db.execute(select(models.User).where(models.User.email == email))
 
 
-def get_user_password(db: Session, email: str):
-    return db.query(models.User.password).filter(models.User.email == email).first()
+async def get_user_password(db: AsyncSession, email: str):
+    return await db.execute(select(models.User.password).where(models.User.email == email))
 
 
-def get_users(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.User).offset(skip).limit(limit).all()
+async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
+    return await db.execute(select(models.User).limit(limit))
 
 
-def create_user(db: Session, user: schemas.User):
-    db_item = models.User(**user.dict())
+async def create_user(db: AsyncSession, user: schemas.User):
+    db_item = models.User(id=user.id, name=user.name, description=user.description, age=user.age, email=user.email, password=user.password)
     db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
+    await db.commit()
+    await db.refresh(db_item)
     return db_item.id
 
 
-def update_user(db: Session, user_id: UUID, user: schemas.User):
-    db.query(models.User).filter(models.User.id == user_id).update({
+async def update_user(db: AsyncSession, user_id: UUID, user: schemas.User):
+    await db.execute(update(models.User).where(models.User.id == user_id).values({
         "name": user.name, "description": user.description, "email": user.email, "age": user.age, "password": user.password
-    })
-    db.commit()
+    }))
+    await db.commit()
     return user
 
 
-def create_friendship(db: Session, friends: schemas.Friends):
+async def create_friendship(db: AsyncSession, friends: schemas.Friends):
     db_item = models.Friendship(id=friends.id, friend_id_one=friends.id_friend_one, friend_id_two=friends.id_friend_two)
     db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
+    await db.commit()
+    await db.refresh(db_item)
     return db_item
 
 
-def find_friendship(db: Session, friend_id: UUID, user_id: UUID):
-    return db.query(models.Friendship).filter((
+async def find_friendship(db: AsyncSession, friend_id: UUID, user_id: UUID):
+    return await db.execute(select(models.Friendship).where((
             (models.Friendship.friend_id_one == friend_id) & (models.Friendship.friend_id_two == user_id)) |
-            (models.Friendship.friend_id_one == user_id) & (models.Friendship.friend_id_two == friend_id)).first()
+            (models.Friendship.friend_id_one == user_id) & (models.Friendship.friend_id_two == friend_id)))
 
 
-def update_login_date(db: Session, user_id: UUID):
-    db.query(models.User).filter(models.User.id == user_id).update({
+async def update_login_date(db: AsyncSession, user_id: UUID):
+    await db.execute(update(models.User).where(models.User.id == user_id).values({
         "login_date": datetime.datetime.utcnow()
-    })
-    db.commit()
+    }))
+    await db.commit()
 
 
-def get_friends(db: Session, user_id: UUID):
-    return db.query(models.User).filter(
+async def get_friends(db: AsyncSession, user_id: UUID):
+    return await db.execute(select(models.User).filter(
         (models.Friendship.friend_id_one == user_id) | (models.Friendship.friend_id_two == user_id)
-    ).filter(models.User.id != user_id).order_by(desc(models.User.id)).all()
+    ).where(models.User.id != user_id).order_by(models.User.id))

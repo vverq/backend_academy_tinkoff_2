@@ -1,14 +1,14 @@
 from uuid import UUID
-from fastapi.testclient import TestClient
-from app.main import app, password_context
+import requests
+from backend.app.main import password_context
+
+URL = "http://localhost:5000"
 
 
 def test_get_empty_users():
-    with TestClient(app) as client:
-        response = client.get("/users/")
-        assert response.status_code == 200
-        assert response.json() == []
-        client.close()
+    response = requests.get(f"{URL}/users/")
+    assert response.status_code == 200
+    assert response.json() == []
 
 
 def test_get_users():
@@ -28,23 +28,21 @@ def test_get_users():
             "password": "lol_1999",
         },
     ]
-    with TestClient(app) as client:
-        ids = [
-            client.post("/users/", json=users[0]).json(),
-            client.post("/users/", json=users[1]).json(),
-        ]
-        response = client.get("/users/")
-        assert response.status_code == 200
-        new_users = response.json()
-        assert len(new_users) == len(users)
-        for i, new_user in enumerate(new_users):
-            assert new_user["id"] == ids[i]
-            assert new_user["name"] == users[i]["name"]
-            assert new_user["age"] == users[i]["age"]
-            assert new_user["description"] == users[i]["description"]
-            assert new_user["email"] == users[i]["email"]
-            assert new_user["password"] != users[i]["password"]
-        client.close()
+    ids = [
+        requests.post(f"{URL}/users/",  json=users[0]).json(),
+        requests.post(f"{URL}/users/", json=users[1]).json(),
+    ]
+    response = requests.get(f"{URL}/users/")
+    assert response.status_code == 200
+    new_users = response.json()
+    assert len(new_users) == len(users)
+    for i, new_user in enumerate(new_users):
+        assert new_user["id"] == ids[i]
+        assert new_user["name"] == users[i]["name"]
+        assert new_user["age"] == users[i]["age"]
+        assert new_user["description"] == users[i]["description"]
+        assert new_user["email"] == users[i]["email"]
+        assert new_user["password"] != users[i]["password"]
 
 
 def test_hashing_passwords():
@@ -55,10 +53,9 @@ def test_hashing_passwords():
         "email": "kek@gmail.com",
         "password": "123",
     }
-    with TestClient(app) as client:
-        response = client.post("/users/", json=user)
-        password = UUID(response.json(), version=4)
-        assert password_context.hash(user["password"]) != password
+    response = requests.post(f"{URL}/users/",  json=user)
+    password = UUID(response.json(), version=4)
+    assert password_context.hash(user["password"]) != password
 
 
 def test_get_user_by_id():
@@ -83,19 +80,17 @@ def test_get_user_by_id():
         "email": "masha@ya.ru",
         "password": "lol8",
     }
-    with TestClient(app) as client:
-        client.post("/users/", json=user1).json()
-        id2 = client.post("/users/", json=user2).json()
-        client.post("/users/", json=user3).json()
-        response = client.get(f"/users/{id2}")
-        user2["id"] = id2
-        assert response.status_code == 200
-        new_user = response.json()
-        assert new_user["name"] == user2["name"]
-        assert new_user["age"] == user2["age"]
-        assert new_user["description"] == user2["description"]
-        assert new_user["email"] == user2["email"]
-        client.close()
+    requests.post(f"{URL}/users/", json=user1).json()
+    id2 = requests.post(f"{URL}/users/", json=user2).json()
+    requests.post(f"{URL}/users/", json=user3).json()
+    response = requests.get(f"{URL}/users/{id2}")
+    user2["id"] = id2
+    assert response.status_code == 200
+    new_user = response.json()
+    assert new_user["name"] == user2["name"]
+    assert new_user["age"] == user2["age"]
+    assert new_user["description"] == user2["description"]
+    assert new_user["email"] == user2["email"]
 
 
 def test_update_user():
@@ -114,32 +109,29 @@ def test_update_user():
         "password": "123",
         "login_date": None,
     }
-    with TestClient(app) as client:
-        id = client.post("/users/", json=user).json()
-        updated_user["id"] = id
-        response = client.put(f"/users/{id}", json=updated_user)
-        assert response.status_code == 200
-        assert response.json() == updated_user
-        response_get_updated_user = client.get(f"/users/{id}")
-        assert response_get_updated_user.status_code == 200
-        assert response_get_updated_user.json() == updated_user
-        client.close()
+    id = requests.post(f"{URL}/users/", json=user).json()
+    updated_user["id"] = id
+    response = requests.put(f"{URL}/users/{id}", json=updated_user)
+    assert response.status_code == 200
+    assert response.json() == updated_user
+    response_get_updated_user = requests.get(f"{URL}/users/{id}")
+    assert response_get_updated_user.status_code == 200
+    assert response_get_updated_user.json() == updated_user
 
 
 def test_create_user():
-    with TestClient(app) as client:
-        response = client.post(
-            "/users/",
-            json={
-                "name": "Ivan",
-                "age": 22,
-                "description": "I like travelling",
-                "email": "not_ivan@gmail.com",
-                "password": "123",
-            },
-        )
-        assert response.status_code == 200
-        assert UUID(response.json(), version=4) is not None
+    response = requests.post(
+        f"{URL}/users/",
+        json={
+            "name": "Ivan",
+            "age": 22,
+            "description": "I like travelling",
+            "email": "not_ivan@gmail.com",
+            "password": "123",
+        },
+    )
+    assert response.status_code == 200
+    assert UUID(response.json(), version=4) is not None
 
 
 def test_create_friendship():
@@ -157,22 +149,21 @@ def test_create_friendship():
         "email": "anya_2001@yandex.ru",
         "password": "qwerty1",
     }
-    with TestClient(app) as client:
-        id1 = client.post("/users/", json=user1).json()
-        id2 = client.post("/users/", json=user2).json()
-        token = client.post(
-            "/users/login/",
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            json="grant_type=&username=anya_2001@yandex.ru&password=qwerty1&scope=&client_id=&client_secret=",
-        ).json()["token"]
-        user1["id"] = id1
-        user2["id"] = id2
-        response = client.post(
-            "/users/friends/",
-            headers={"Authorization": f"Bearer {token}"},
-            json={"id_friend_one": id1, "id_friend_two": id2},
-        )
-        assert response.status_code == 200
-        response = response.json()
-        assert response["friend_id_one"] == id1
-        assert response["friend_id_two"] == id2
+    id1 = requests.post(f"{URL}/users/", json=user1).json()
+    id2 = requests.post(f"{URL}/users/", json=user2).json()
+    token = requests.post(
+        f"{URL}/users/login/",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        json="grant_type=&username=anya_2001@yandex.ru&password=qwerty1&scope=&client_id=&client_secret=",
+    ).json()["token"]
+    user1["id"] = id1
+    user2["id"] = id2
+    response = requests.post(
+        f"{URL}/users/friends/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"id_friend_one": id1, "id_friend_two": id2},
+    )
+    assert response.status_code == 200
+    response = response.json()
+    assert response["friend_id_one"] == id1
+    assert response["friend_id_two"] == id2

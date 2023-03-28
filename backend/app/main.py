@@ -13,32 +13,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
-from sqlalchemy import inspect
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.connection_manager import ConnectionManager
-from app.core.config import settings
-from app.schemas import User, Friends
+from backend.app.connection_manager import ConnectionManager
+from backend.app.core.config import settings
+from backend.app.schemas import User, Friends
 
-from app import crud, models, schemas
-from .database import SessionLocal, engine
+from backend.app import crud, models, schemas
+from .database import get_session, engine, Base
 
 JWT_SECRET = "secret"
 JWT_ALGORITHM = "HS256"
 
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-if not inspect(engine).has_table(models.User.__tablename__):
-    models.Base.metadata.create_all(bind=engine)
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 def get_application():
@@ -57,15 +45,24 @@ def get_application():
 app = get_application()
 
 
-def authenticate_user(email: str, password: str, db: Session):
-    user_password = crud.get_user_password(db, email)
+@app.on_event("startup")
+async def init_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def authenticate_user(email: str, password: str, db: AsyncSession):
+    user_password = await crud.get_user_password(db, email)
+    user_password = user_password.scalars().one()
     if user_password:
-        if password_context.verify(password, user_password[0]):
-            return crud.get_user_by_email(db, email)
+        if password_context.verify(password, user_password):
+            user = await crud.get_user_by_email(db, email)
+            return user.scalars().one()
     return False
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_session)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -78,25 +75,27 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             raise credentials_exception
     except Exception:
         raise credentials_exception
-    user = crud.get_user_by_email(db, email)
+    user = await crud.get_user_by_email(db, email)
+    user = user.scalars().one()
     if user:
         return user
     raise credentials_exception
 
 
 @app.post("/users/", tags=["user"], description="Create new user")
-async def create_user(user: schemas.User, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, email=user.email)
+async def create_user(user: schemas.User, db: AsyncSession = Depends(get_session)):
+    db_user = await crud.get_user_by_email(db, email=user.email)
+    db_user = db_user.scalars().one_or_none()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     user.password = password_context.hash(user.password)
-    return crud.create_user(db=db, user=user)
+    return await crud.create_user(db=db, user=user)
 
 
 @app.post("/users/login", tags=["user"], description="Login user")
-async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = authenticate_user(form_data.username, form_data.password, db)
-    crud.update_login_date(db, user.id)
+async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_session)):
+    user = await authenticate_user(form_data.username, form_data.password, db)
+    await crud.update_login_date(db, user_id=user.id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -114,41 +113,45 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
 @app.put(
     "/users/{user_id}", tags=["user"], description="Update user, who already exists"
 )
-async def update_user(user_id: UUID, new_user: User, db: Session = Depends(get_db)):
-    user = crud.get_user(db, user_id)
+async def update_user(user_id: UUID, new_user: User, db: AsyncSession = Depends(get_session)):
+    user = await crud.get_user(db, user_id)
+    user = user.scalars().one_or_none()
     if user:
-        return crud.update_user(db, user_id, new_user)
+        await crud.update_user(db, user_id, new_user)
+        return new_user
     raise HTTPException(status_code=404, detail="User not found")
 
 
 @app.get("/users/{user_id}", tags=["user"], description="Get user by id")
-async def get_user(user_id: UUID, db: Session = Depends(get_db)):
-    user = crud.get_user(db, user_id)
+async def get_user(user_id: UUID, db: AsyncSession = Depends(get_session)):
+    db_user = await crud.get_user(db, user_id)
+    user = db_user.scalars().one_or_none()
     if user:
         return user
-    raise HTTPException(status_code=404, detail="User not found")
+    raise HTTPException(status_code=404, detail=f"User not found")
 
 
-@app.get("/users/", tags=["users"], description="Get all users", response_model=list[schemas.User])
-async def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    users = crud.get_users(db, skip=skip, limit=limit)
-    return users
+@app.get("/users/", tags=["users"], description="Get all users")
+async def get_users(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_session)):
+    users = await crud.get_users(db, skip=skip, limit=limit)
+    return users.scalars().all()
 
 
 @app.post("/users/friends/", tags=["friendship"], description="Create friendship between user1 and user2 by their ids")
-async def create_friends(friends: Friends, db: Session = Depends(get_db)):
-    first_id_exists = crud.get_user(db, friends.id_friend_one)
-    second_id_exists = crud.get_user(db, friends.id_friend_two)
-    if first_id_exists and second_id_exists:
-        return crud.create_friendship(db, friends)
+async def create_friends(friends: Friends, db: AsyncSession = Depends(get_session)):
+    first_id_exists = await crud.get_user(db, friends.id_friend_one)
+    second_id_exists = await crud.get_user(db, friends.id_friend_two)
+    if first_id_exists.scalars().one_or_none() and second_id_exists.scalars().one_or_none():
+        return await crud.create_friendship(db, friends)
     raise HTTPException(status_code=404,
                         detail=f"User with id {friends.id_friend_one} or with id {friends.id_friend_two} not found")
 
+
 # todo fix
 @app.get("/get_friends/", tags=["users"], description="Get all users")
-async def get_users(user_id: UUID, db: Session = Depends(get_db)):
-    users = crud.get_friends(db, user_id)
-    return users
+async def get_users(user_id: UUID, db: AsyncSession = Depends(get_session)):
+    users = await crud.get_friends(db, user_id)
+    return users.scalars().all()
 
 html = """
 <!DOCTYPE html>
@@ -198,10 +201,11 @@ async def create_chat():
     tags=["chat"],
     description="Create a chat between two friends",
 )
-async def create_chat(friend_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    user = crud.get_user(db, friend_id)
+async def create_chat(friend_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_session)):
+    db_user = await crud.get_user(db, friend_id)
+    user = db_user.scalars().one_or_none()
     if user:
-        friends = crud.find_friendship(db, friend_id, user.id)
+        friends = await crud.find_friendship(db, friend_id, user.id)
         if friends:
             return HTMLResponse(html)
         raise HTTPException(

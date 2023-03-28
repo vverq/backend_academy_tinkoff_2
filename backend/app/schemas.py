@@ -1,6 +1,7 @@
 import datetime
 import uuid
 from pydantic import BaseModel, Field, EmailStr
+from pydantic.types import Optional
 
 
 class User(BaseModel):
@@ -10,7 +11,7 @@ class User(BaseModel):
     age: int = Field(gt=0)
     email: EmailStr
     password: str
-    login_date: datetime.datetime = None
+    login_date: Optional[datetime.datetime] = None
 
     class Config:
         orm_mode = True
