@@ -15,6 +15,7 @@ services:
       interval: 15s
       timeout: 10s
       retries: 2
+
   my-app:
     container_name: "my-app"
     build: .
@@ -24,3 +25,33 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v2.43.0
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    expose:
+      - 9090
+    ports:
+      - 9090:9090
+    depends_on:
+      - my-app
+
+  grafana:
+    image: grafana/grafana:9.2.15
+    container_name: grafana
+    expose:
+      - 3000
+    ports:
+      - 3000:3000
+    depends_on:
+      - prometheus
+    env_file:
+      - grafana/config.monitoring
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    

@@ -14,12 +14,13 @@ from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.connection_manager import ConnectionManager
 from app.core.config import settings
 from app.schemas import User, Friends
 
-from app import crud, models, schemas
+from app import crud, schemas
 from .database import get_session, engine, Base
 
 JWT_SECRET = "secret"
@@ -43,6 +44,8 @@ def get_application():
 
 
 app = get_application()
+
+Instrumentator().instrument(app).expose(app)  # added /metrics endpoint
 
 
 @app.on_event("startup")
