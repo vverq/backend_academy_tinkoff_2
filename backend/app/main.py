@@ -13,23 +13,34 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
+from sqlalchemy.orm import Session
 
 from app.connection_manager import ConnectionManager
 from app.core.config import settings
-from app.models import User, Friends
+from app.schemas import User, Friends
 
-USERS = dict()
-FRIENDS = dict()
+from app import crud, models, schemas
+from .database import SessionLocal, engine
+
 JWT_SECRET = "secret"
 JWT_ALGORITHM = "HS256"
 
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+models.Base.metadata.create_all(bind=engine)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 
 def get_application():
     _app = FastAPI(title=settings.PROJECT_NAME)
-
     _app.add_middleware(
         CORSMiddleware,
         allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
@@ -44,15 +55,15 @@ def get_application():
 app = get_application()
 
 
-def authenticate_user(username: str, password: str):
-    for user in USERS.values():
-        if user.name == username:
-            if password_context.verify(password, user.password):
-                return user
+def authenticate_user(email: str, password: str, db: Session):
+    user_password = crud.get_user_password(db, email)
+    if user_password:
+        if password_context.verify(password, user_password[0]):
+            return crud.get_user_by_email(db, email)
     return False
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -60,67 +71,73 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        username: str = payload.get("username")
-        if username is None:
+        email: str = payload.get("username")
+        if email is None:
             raise credentials_exception
     except Exception:
         raise credentials_exception
-    for user in USERS.values():
-        if user.name == username:
-            return user
+    user = crud.get_user_by_email(db, email)
+    if user:
+        return user
     raise credentials_exception
 
 
 @app.post("/users/", tags=["user"], description="Create new user")
-async def create_user(user: User):
+async def create_user(user: schemas.User, db: Session = Depends(get_db)):
+    db_user = crud.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
     user.password = password_context.hash(user.password)
-    USERS[user.id] = user
-    return user.id
+    return crud.create_user(db=db, user=user)
 
 
 @app.post("/users/login", tags=["user"], description="Login user")
-async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(form_data.username, form_data.password)
+async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect login or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return {
         "token": jwt.encode(
-            {"username": user.name}, JWT_SECRET, algorithm=JWT_ALGORITHM
+            {"email": user.email}, JWT_SECRET, algorithm=JWT_ALGORITHM
         )
     }
 
 
+# todo fix update password
 @app.put(
     "/users/{user_id}", tags=["user"], description="Update user, who already exists"
 )
-async def update_user(user_id: UUID, user: User):
-    if user_id in USERS.keys():
-        USERS[user_id] = user
-        return user
+async def update_user(user_id: UUID, new_user: User, db: Session = Depends(get_db)):
+    user = crud.get_user(db, user_id)
+    if user:
+        return crud.update_user(db, user_id, new_user)
     raise HTTPException(status_code=404, detail="User not found")
 
 
 @app.get("/users/{user_id}", tags=["user"], description="Get user by id")
-async def get_user(user_id: UUID):
-    if user_id in USERS.keys():
-        return USERS[user_id]
+async def get_user(user_id: UUID, db: Session = Depends(get_db)):
+    user = crud.get_user(db, user_id)
+    if user:
+        return user
     raise HTTPException(status_code=404, detail="User not found")
 
 
-@app.get("/users/", tags=["users"], description="Get all users")
-async def get_users():
-    return USERS
+@app.get("/users/", tags=["users"], description="Get all users", response_model=list[schemas.User])
+async def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    users = crud.get_users(db, skip=skip, limit=limit)
+    return users
 
 
 @app.post("/users/friends/", tags=["friendship"], description="Create friendship between user1 and user2 by their ids")
-async def create_friends(friends: Friends):
-    if friends.id_friend_one in USERS.keys() and friends.id_friend_two in USERS.keys():
-        FRIENDS[friends.id] = friends
-        return friends
+async def create_friends(friends: Friends, db: Session = Depends(get_db)):
+    first_id_exists = crud.get_user(db, friends.id_friend_one)
+    second_id_exists = crud.get_user(db, friends.id_friend_two)
+    if first_id_exists and second_id_exists:
+        return crud.create_friendship(db, friends)
     raise HTTPException(status_code=404,
                         detail=f"User with id {friends.id_friend_one} or with id {friends.id_friend_two} not found")
 
@@ -173,18 +190,15 @@ async def create_chat():
     tags=["chat"],
     description="Create a chat between two friends",
 )
-async def create_chat(friend_id: UUID, user: User = Depends(get_current_user)):
-    if friend_id in USERS.keys():
-        for friends in FRIENDS.values():
-            if (
-                friends.id_friend_one == friend_id and friends.id_friend_two == user.id
-            ) or (
-                friends.id_friend_one == user.id and friends.id_friend_two == friend_id
-            ):
-                return HTMLResponse(html)
-            raise HTTPException(
-                status_code=403, detail=f"User with id {friend_id} is not your friend"
-            )
+async def create_chat(friend_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = crud.get_user(db, friend_id)
+    if user:
+        friends = crud.find_friendship(db, friend_id, user.id)
+        if friends:
+            return HTMLResponse(html)
+        raise HTTPException(
+            status_code=403, detail=f"User with id {friend_id} is not your friend"
+        )
     raise HTTPException(status_code=404, detail=f"User with id {friend_id} not found")
 
 
