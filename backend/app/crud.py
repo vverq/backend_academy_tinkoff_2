@@ -38,7 +38,7 @@ def update_user(db: Session, user_id: UUID, user: schemas.User):
 
 
 def create_friendship(db: Session, friends: schemas.Friends):
-    db_item = models.Friendship(id=friends.id, friend_id_one=friends.id_friend_one, friend_id_two=friends.id_friend_two)
+    db_item = models.Friendship(friend_id_one=friends.id_friend_one, friend_id_two=friends.id_friend_two)
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
