@@ -15,10 +15,9 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
-
-class Config:
-    case_sensitive = True
-    env_file = ".env"
+    class Config:
+        case_sensitive = True
+        env_file = ".env"
 
 
 settings = Settings(PROJECT_NAME="backend_academy_course")

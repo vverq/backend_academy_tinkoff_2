@@ -4,7 +4,7 @@ install:
 
 .PHONY: run
 run:
-	python3 -m uvicorn backend.app.main:app --reload --port=5000
+	python3 -m uvicorn backend.app.main:app --host 0.0.0.0 --reload --port=5000
 
 .PHONY: swagger
 swagger:

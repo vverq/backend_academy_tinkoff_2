@@ -1,11 +1,6 @@
-import jwt
-import uuid
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
-from pydantic import BaseModel, EmailStr, Field
 from uuid import UUID
+
+import jwt
 from fastapi import (
     FastAPI,
     HTTPException,
@@ -20,8 +15,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 
 from app.connection_manager import ConnectionManager
-from app.models import User, Friends
 from app.core.config import settings
+from app.models import User, Friends
 
 USERS = dict()
 FRIENDS = dict()
@@ -148,7 +143,7 @@ html = """
         <script>
             var client_id = Date.now()
             document.querySelector("#ws-id").textContent = client_id;
-            var ws = new WebSocket(`ws://localhost:5000/ws/${client_id}`);
+            var ws = new WebSocket(`ws://0.0.0.0:5000/ws/${client_id}`);
             ws.onmessage = function(event) {
                 var messages = document.getElementById('messages')
                 var message = document.createElement('li')
