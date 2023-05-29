@@ -18,7 +18,6 @@ class User(BaseModel):
 
 
 class Friends(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
     id_friend_one: uuid.UUID
     id_friend_two: uuid.UUID
 

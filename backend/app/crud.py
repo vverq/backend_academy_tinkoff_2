@@ -36,7 +36,6 @@ async def update_user(db: AsyncSession, user_id: UUID, user: schemas.User):
     await db.commit()
     return user
 
-
 async def create_friendship(db: AsyncSession, friends: schemas.Friends):
     db_item = models.Friendship(id=friends.id, friend_id_one=friends.id_friend_one, friend_id_two=friends.id_friend_two)
     db.add(db_item)
