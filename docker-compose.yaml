@@ -18,6 +18,7 @@ services:
   my-app:
     container_name: "my-app"
     build: .
+    command: bash -c "cd app/backend && alembic upgrade head"
     ports:
       - 5000:5000
     restart: always
