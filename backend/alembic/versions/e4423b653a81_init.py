@@ -25,7 +25,7 @@ def upgrade() -> None:
         sa.Column("age", sa.Integer),
         sa.Column("email", sa.String),
         sa.Column("password", sa.String),
-        sa.Column("login_date", default=None)
+        sa.Column("login_date", sa.DateTime(timezone=True), default=None)
     )
     op.create_table(
         "friendship",

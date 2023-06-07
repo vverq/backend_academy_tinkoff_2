@@ -18,10 +18,19 @@ services:
   my-app:
     container_name: "my-app"
     build: .
-    command: bash -c "cd app/backend && alembic upgrade head"
     ports:
       - 5000:5000
-    restart: always
     depends_on:
       db:
         condition: service_healthy
+  migration:
+    build: .
+    image: my-app
+    command: bash -c "cd backend && alembic upgrade head"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql
+    links:
+      - db
+    depends_on:
+      - db
+      - my-app

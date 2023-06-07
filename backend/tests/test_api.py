@@ -2,7 +2,7 @@ from uuid import UUID
 import requests
 from app.main import password_context
 
-URL = "http://localhost:5000"
+URL = "http://0.0.0.0:5000"
 
 
 def test_get_empty_users():
