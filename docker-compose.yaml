@@ -10,11 +10,29 @@ services:
       - ./postgres_data:/var/lib/postgresql
     ports:
         - 5432:5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 15s
+      timeout: 10s
+      retries: 2
   my-app:
     container_name: "my-app"
     build: .
     ports:
-      - 5050:5050
-    restart: always
+      - 5000:5000
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /my-app/backend
+  migration:
+    build: .
+    image: my-app
+    command: bash -c "alembic upgrade head"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql
+    links:
+      - db
     depends_on:
       - db
+      - my-app
+    working_dir: /my-app/backend
