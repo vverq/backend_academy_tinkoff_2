@@ -17,6 +17,5 @@ class User(Base):
 
 class Friendship(Base):
     __tablename__ = 'friendship'
-    id = Column(UUID)
     friend_id_one = Column(UUID, ForeignKey('users.id'), index=True, primary_key=True)
     friend_id_two = Column(UUID, ForeignKey('users.id'),  index=True, primary_key=True)

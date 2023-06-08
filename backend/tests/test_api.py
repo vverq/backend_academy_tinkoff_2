@@ -155,7 +155,8 @@ def test_create_friendship():
         f"{URL}/users/login/",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         json="grant_type=&username=anya_2001@yandex.ru&password=qwerty1&scope=&client_id=&client_secret=",
-    ).json()["token"]
+    )
+    token = token.json()["token"]
     user1["id"] = id1
     user2["id"] = id2
     response = requests.post(

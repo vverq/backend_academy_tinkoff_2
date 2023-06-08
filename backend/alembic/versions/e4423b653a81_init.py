@@ -29,9 +29,8 @@ def upgrade() -> None:
     )
     op.create_table(
         "friendship",
-        sa.Column("id", sa.UUID, primary_key=True),
-        sa.Column("friend_id_one", sa.UUID, sa.ForeignKey("users.id"), index=True),
-        sa.Column("friend_id_two", sa.UUID, sa.ForeignKey("users.id"), index=True)
+        sa.Column("friend_id_one", sa.UUID, sa.ForeignKey("users.id"), index=True, primary_key=True),
+        sa.Column("friend_id_two", sa.UUID, sa.ForeignKey("users.id"), index=True, primary_key=True)
     )
 
 

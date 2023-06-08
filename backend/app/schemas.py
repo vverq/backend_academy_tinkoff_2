@@ -18,10 +18,6 @@ class User(BaseModel):
 
 
 class Friends(BaseModel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(args, kwargs)
-        self.id = None
-
     id_friend_one: uuid.UUID
     id_friend_two: uuid.UUID
 
