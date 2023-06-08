@@ -23,10 +23,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    working_dir: /my-app/backend
   migration:
     build: .
     image: my-app
-    command: bash -c "cd backend && alembic upgrade head"
+    command: bash -c "alembic upgrade head"
     volumes:
       - ./postgres_data:/var/lib/postgresql
     links:
@@ -34,3 +35,4 @@ services:
     depends_on:
       - db
       - my-app
+    working_dir: /my-app/backend
