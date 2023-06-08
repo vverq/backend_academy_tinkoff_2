@@ -37,5 +37,4 @@ jobs:
     - name: Build the stack
       run: docker-compose up -d
     - name: Test with pytest
-      run: |
-        pytest ./backend/tests/test_api.py
+      run: docker-compose exec -T my-app pytest
