@@ -24,6 +24,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    working_dir: /my-app/backend
 
   prometheus:
     image: prom/prometheus:v2.43.0
