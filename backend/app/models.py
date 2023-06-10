@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 
 from .database import Base
@@ -17,6 +17,5 @@ class User(Base):
 
 class Friendship(Base):
     __tablename__ = 'friendship'
-    id = Column(UUID, primary_key=True)
-    friend_id_one = Column(UUID, ForeignKey('users.id'), index=True)
-    friend_id_two = Column(UUID, ForeignKey('users.id'),  index=True)
+    friend_id_one = Column(UUID, ForeignKey('users.id'), index=True, primary_key=True)
+    friend_id_two = Column(UUID, ForeignKey('users.id'),  index=True, primary_key=True)

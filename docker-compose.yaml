@@ -21,7 +21,6 @@ services:
     build: .
     ports:
       - 5000:5000
-    restart: always
     depends_on:
       db:
         condition: service_healthy
@@ -54,4 +53,17 @@ services:
       - grafana/config.monitoring
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
-    
+    working_dir: /my-app/backend
+
+  migration:
+    build: .
+    image: my-app
+    command: bash -c "alembic upgrade head"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql
+    links:
+      - db
+    depends_on:
+      - db
+      - my-app
+    working_dir: /my-app/backend

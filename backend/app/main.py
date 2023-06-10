@@ -48,11 +48,11 @@ app = get_application()
 Instrumentator().instrument(app).expose(app)  # added /metrics endpoint
 
 
-@app.on_event("startup")
-async def init_tables():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
+# @app.on_event("startup")
+# async def init_tables():
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.drop_all)
+#         await conn.run_sync(Base.metadata.create_all)
 
 
 async def authenticate_user(email: str, password: str, db: AsyncSession):
