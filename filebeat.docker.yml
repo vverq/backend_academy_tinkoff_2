@@ -1,0 +1,23 @@
+#filebeat.config:
+#  modules:
+#    path: ${path.config}/modules.d/*.yml
+#    reload.enabled: false
+
+filebeat.inputs:
+- type: log
+  paths:
+    - /var/app/log/*.log
+
+processors:
+  - drop_fields:
+      fields: ["agent", "container", "ecs", "log", "input", "docker", "host"]
+      ignore_missing: true
+  - dissect:
+      tokenizer: '%{datetime} [%{status_code}] %{request_method} %{api_request} %{ip} [%{agent_info}]'
+
+#output.console:
+#  pretty: true
+
+output.logstash:
+  hosts: ["logstash:5044"]
+

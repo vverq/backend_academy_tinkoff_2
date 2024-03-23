@@ -1,0 +1,37 @@
+global:
+  resolve_timeout: 5m
+  telegram_api_url: "https://api.telegram.org"
+
+time_intervals:
+  - name: non_working_time
+    time_intervals:
+      - weekdays: [ 'monday:friday' ]
+      - location: 'Europe/Moscow'
+        times:
+          - start_time: "09:00"
+            end_time: "17:00"
+
+receivers:
+  - name: telegram
+    telegram_configs:
+      - chat_id: 548237613
+        bot_token: "6828400348:AAFWfULKeUScV9EBquAC9Wdp6bWfqMC6ig0"
+        api_url: "https://api.telegram.org"
+        send_resolved: true
+
+route:
+  group_by: ['instance']
+  receiver: telegram
+
+  routes:
+    - receiver: telegram
+      continue: true
+      matchers:
+        - severity="critical"
+
+    - receiver: telegram
+      continue: true
+      matchers:
+        - severity="warning"
+      mute_time_intervals:
+        - non_working_time

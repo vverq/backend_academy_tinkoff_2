@@ -1,0 +1,9 @@
+FROM python:3
+
+COPY oncall_api_metrics.py /opt/oncall_api_metrics.py
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+EXPOSE 9099
+
+ENTRYPOINT [ "python", "/opt/oncall_api_metrics.py" ]

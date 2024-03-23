@@ -1,14 +1,35 @@
-.PHONY: install
-install:
-	pip install -r ./backend/requirements.txt
+all: serve
 
-.PHONY: run
-run:
-	python3 -m uvicorn app.main:app --host 0.0.0.0 --reload --port=5000
+serve:
+	oncall-dev ./configs/config.yaml
 
-.PHONY: swagger
-swagger:
-	python3 -m webbrowser "http://127.0.0.1:5000/docs"
+unit:
+	py.test -v ./test
+
+e2e:
+	py.test -v ./e2e
 
 test:
-	python3 -m pytest backend/tests/tests.py -vv
+	make unit
+	make e2e
+
+static-analysis:
+	pyflakes test src
+
+flake8:
+	flake8 src test setup.py
+
+check:
+	make static-analysis
+	make flake8
+	make test
+
+.PHONY: test e2e
+
+APP_NAME=oncall
+
+build:
+	docker build --ulimit nofile=1024 -t $(APP_NAME) .
+
+run: build
+	docker run -p 8080:8080 $(APP_NAME)

@@ -1,0 +1,217 @@
+version: '3.9'
+
+services:
+  oncall-web1:
+    build: .
+    container_name: oncall-web1
+    ports:
+      - "8091:8080"
+#      - "8081:8081"
+    expose:
+      - 8091
+    environment:
+      - DOCKER_DB_BOOTSTRAP=1
+      # - IRIS_API_HOST=iris
+    volumes:
+      - ./configs/config.docker.yaml:/home/oncall/config/config.yaml
+      - log-data:/home/oncall/var/log/uwsgi
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://oncall-web:8091"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  oncall-web2:
+    build: .
+    container_name: oncall-web2
+    ports:
+      - "8092:8080"
+#      - "8082:8082"
+    expose:
+      - 8092
+    environment:
+      - DOCKER_DB_BOOTSTRAP=1
+      # - IRIS_API_HOST=iris
+    volumes:
+      - ./configs/config.docker.yaml:/home/oncall/config/config.yaml
+      - log-data:/home/oncall/var/log/uwsgi
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://oncall-web:8092" ]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  oncall-mysql:
+    container_name: oncall-mysql
+    #    hostname: oncall-mysql
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=1234
+#
+#  filebeat:
+#    container_name: filebeat
+#    image: docker.elastic.co/beats/filebeat:8.11.0
+#    entrypoint: filebeat -e -strict.perms=false
+#    user: root
+#    volumes:
+#      - ./filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro
+#      - log-data:/var/app/log
+#
+#  logstash:
+#    image: docker.elastic.co/logstash/logstash:8.11.0
+#    volumes:
+#      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
+#      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
+#    ports:
+#      - "5044:5044"
+#    environment:
+#      ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+#
+#  elasticsearch:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+#    ports:
+#      - "9200:9200"
+#    environment:
+#      - discovery.type=single-node
+#      - xpack.security.enabled=false
+#      - bootstrap.memory_lock=true
+#      - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
+#
+#  kibana:
+#    image: docker.elastic.co/kibana/kibana:8.11.0
+#    ports:
+#      - "5601:5601"
+#    volumes:
+#      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+#    environment:
+#      - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
+
+
+  prometheus:
+    image: prom/prometheus:v2.43.0
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./rules.yml/:/etc/alertmanager/rules.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    expose:
+      - 9090
+    ports:
+      - "9090:9090"
+    depends_on:
+      - oncall-web1
+      - oncall-web2
+
+#
+#  node_exporter:
+#    image: quay.io/prometheus/node-exporter:latest
+#    container_name: node_exporter
+#    volumes:
+#      - /:/rootfs:ro
+#      - /var/run:/var/run:rw
+#      - /sys:/sys:ro
+#      - /var/lib/docker/:/var/lib/docker:ro
+#      - /var/lib/node_exporter/textfile_collector:/var/lib/node_exporter/textfile_collector:rw
+#    command:
+##      - '--no-collector.arp'
+##      - '--no-collector.bcache'
+##      - '--no-collector.bonding'
+##      - '--no-collector.btrfs'
+##      - '--no-collector.diskstats'
+##      - '--no-collector.dmi'
+##      - '--no-collector.fibrechannel'
+##      - '--no-collector.filefd'
+##      - '--no-collector.hwmon'
+##      - '--no-collector.infiniband'
+##      - '--no-collector.mdadm'
+##      - '--no-collector.nfs'
+##      - '--no-collector.nfsd'
+##      - '--no-collector.nvme'
+##      - '--no-collector.powersupplyclass'
+##      - '--no-collector.selinux'
+##      - '--no-collector.tapestats'
+##      - '--no-collector.uname'
+#      - '--collector.textfile'
+#      - '--collector.textfile.directory=/var/lib/node_exporter/textfile_collector'
+#    ports:
+#      - "9100:9100"
+#
+#
+#  custom_metrics:
+#    build: custom_metrics_textfile_collector
+#    container_name: custom_metrics_textfile_collector
+#    volumes:
+#      - /var/lib/node_exporter/textfile_collector:/var/lib/node_exporter/textfile_collector:rw
+#      - log-data:/home/oncall/var/log/uwsgi
+#    healthcheck:
+#      test: exit 1
+#      interval: 15s
+#      timeout: 10s
+#    restart: always
+#    depends_on:
+#      - oncall-web
+#
+#  oncall_api_metrics_exporter:
+#    container_name: oncall_api_metrics_exporter
+#    build:
+#      dockerfile: oncall_api_exporter_dockerfile
+#    depends_on:
+#      - oncall-web
+#    restart: unless-stopped
+#    ports:
+#      - "9099:9099"
+#
+  blackbox_exporter:
+      image: prom/blackbox-exporter:latest
+      container_name: blackbox-exporter
+      volumes:
+        - ./blackbox-exporter/:/config/
+      command:
+        - '--config.file=/config/blackbox.yml'
+      restart: unless-stopped
+      ports:
+        - "9115:9115"
+
+  grafana:
+      image: grafana/grafana-oss
+      container_name: grafana
+      ports:
+        - "3000:3000"
+
+#  alertmanager:
+#      image: prom/alertmanager:latest
+#      container_name: alertmanager
+#      volumes:
+#        - ./alertmanager.yml/:/etc/alertmanager/alertmanager.yml
+#      command:
+#        - '--config.file=/etc/alertmanager/alertmanager.yml'
+#      ports:
+#        - "9093:9093"
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    expose:
+      - 80
+    volumes:
+      - ./configs/nginx.conf:/etc/nginx/nginx.conf
+
+  nginx-exporter:
+    container_name: nginx-exporter
+    image: nginx/nginx-prometheus-exporter:latest
+    ports:
+      - "9113:9113"
+    expose:
+      - 9113
+    command:
+      - -nginx.scrape-uri=http://nginx:80/metrics
+
+volumes:
+  log-data:
+
