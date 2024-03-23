@@ -49,44 +49,44 @@ services:
     image: mysql:5.7
     environment:
       - MYSQL_ROOT_PASSWORD=1234
-#
-#  filebeat:
-#    container_name: filebeat
-#    image: docker.elastic.co/beats/filebeat:8.11.0
-#    entrypoint: filebeat -e -strict.perms=false
-#    user: root
-#    volumes:
-#      - ./filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro
-#      - log-data:/var/app/log
-#
-#  logstash:
-#    image: docker.elastic.co/logstash/logstash:8.11.0
-#    volumes:
-#      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
-#      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
-#    ports:
-#      - "5044:5044"
-#    environment:
-#      ES_JAVA_OPTS: "-Xms750m -Xmx750m"
-#
-#  elasticsearch:
-#    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-#    ports:
-#      - "9200:9200"
-#    environment:
-#      - discovery.type=single-node
-#      - xpack.security.enabled=false
-#      - bootstrap.memory_lock=true
-#      - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
-#
-#  kibana:
-#    image: docker.elastic.co/kibana/kibana:8.11.0
-#    ports:
-#      - "5601:5601"
-#    volumes:
-#      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
-#    environment:
-#      - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
+
+  filebeat:
+    container_name: filebeat
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    entrypoint: filebeat -e -strict.perms=false
+    user: root
+    volumes:
+      - ./filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro
+      - log-data:/var/app/log
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
+    ports:
+      - "5044:5044"
+    environment:
+      ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    ports:
+      - "5601:5601"
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    environment:
+      - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
 
 
   prometheus:
@@ -106,64 +106,64 @@ services:
       - oncall-web1
       - oncall-web2
 
-#
-#  node_exporter:
-#    image: quay.io/prometheus/node-exporter:latest
-#    container_name: node_exporter
-#    volumes:
-#      - /:/rootfs:ro
-#      - /var/run:/var/run:rw
-#      - /sys:/sys:ro
-#      - /var/lib/docker/:/var/lib/docker:ro
-#      - /var/lib/node_exporter/textfile_collector:/var/lib/node_exporter/textfile_collector:rw
-#    command:
-##      - '--no-collector.arp'
-##      - '--no-collector.bcache'
-##      - '--no-collector.bonding'
-##      - '--no-collector.btrfs'
-##      - '--no-collector.diskstats'
-##      - '--no-collector.dmi'
-##      - '--no-collector.fibrechannel'
-##      - '--no-collector.filefd'
-##      - '--no-collector.hwmon'
-##      - '--no-collector.infiniband'
-##      - '--no-collector.mdadm'
-##      - '--no-collector.nfs'
-##      - '--no-collector.nfsd'
-##      - '--no-collector.nvme'
-##      - '--no-collector.powersupplyclass'
-##      - '--no-collector.selinux'
-##      - '--no-collector.tapestats'
-##      - '--no-collector.uname'
-#      - '--collector.textfile'
-#      - '--collector.textfile.directory=/var/lib/node_exporter/textfile_collector'
-#    ports:
-#      - "9100:9100"
-#
-#
-#  custom_metrics:
-#    build: custom_metrics_textfile_collector
-#    container_name: custom_metrics_textfile_collector
-#    volumes:
-#      - /var/lib/node_exporter/textfile_collector:/var/lib/node_exporter/textfile_collector:rw
-#      - log-data:/home/oncall/var/log/uwsgi
-#    healthcheck:
-#      test: exit 1
-#      interval: 15s
-#      timeout: 10s
-#    restart: always
-#    depends_on:
-#      - oncall-web
-#
-#  oncall_api_metrics_exporter:
-#    container_name: oncall_api_metrics_exporter
-#    build:
-#      dockerfile: oncall_api_exporter_dockerfile
-#    depends_on:
-#      - oncall-web
-#    restart: unless-stopped
-#    ports:
-#      - "9099:9099"
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /var/lib/node_exporter/textfile_collector:/var/lib/node_exporter/textfile_collector:rw
+    command:
+#      - '--no-collector.arp'
+#      - '--no-collector.bcache'
+#      - '--no-collector.bonding'
+#      - '--no-collector.btrfs'
+#      - '--no-collector.diskstats'
+#      - '--no-collector.dmi'
+#      - '--no-collector.fibrechannel'
+#      - '--no-collector.filefd'
+#      - '--no-collector.hwmon'
+#      - '--no-collector.infiniband'
+#      - '--no-collector.mdadm'
+#      - '--no-collector.nfs'
+#      - '--no-collector.nfsd'
+#      - '--no-collector.nvme'
+#      - '--no-collector.powersupplyclass'
+#      - '--no-collector.selinux'
+#      - '--no-collector.tapestats'
+#      - '--no-collector.uname'
+      - '--collector.textfile'
+      - '--collector.textfile.directory=/var/lib/node_exporter/textfile_collector'
+    ports:
+      - "9100:9100"
+
+
+  custom_metrics:
+    build: custom_metrics_textfile_collector
+    container_name: custom_metrics_textfile_collector
+    volumes:
+      - /var/lib/node_exporter/textfile_collector:/var/lib/node_exporter/textfile_collector:rw
+      - log-data:/home/oncall/var/log/uwsgi
+    healthcheck:
+      test: exit 1
+      interval: 15s
+      timeout: 10s
+    restart: always
+    depends_on:
+      - oncall-web
+
+  oncall_api_metrics_exporter:
+    container_name: oncall_api_metrics_exporter
+    build:
+      dockerfile: oncall_api_exporter_dockerfile
+    depends_on:
+      - oncall-web
+    restart: unless-stopped
+    ports:
+      - "9099:9099"
 #
   blackbox_exporter:
       image: prom/blackbox-exporter:latest
@@ -182,15 +182,15 @@ services:
       ports:
         - "3000:3000"
 
-#  alertmanager:
-#      image: prom/alertmanager:latest
-#      container_name: alertmanager
-#      volumes:
-#        - ./alertmanager.yml/:/etc/alertmanager/alertmanager.yml
-#      command:
-#        - '--config.file=/etc/alertmanager/alertmanager.yml'
-#      ports:
-#        - "9093:9093"
+  alertmanager:
+      image: prom/alertmanager:latest
+      container_name: alertmanager
+      volumes:
+        - ./alertmanager.yml/:/etc/alertmanager/alertmanager.yml
+      command:
+        - '--config.file=/etc/alertmanager/alertmanager.yml'
+      ports:
+        - "9093:9093"
 
   nginx:
     image: nginx:latest
