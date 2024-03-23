@@ -1,0 +1,107 @@
+groups:
+- name: AllInstances
+  rules:
+  - alert: InstanceDown
+    expr: up == 0
+    for: 1m
+    annotations:
+      title: 'Instance {{ $labels.instance }} down'
+      description: '{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute.'
+    labels:
+      severity: 'critical'
+
+- name: blackbox_exporter_alerts
+  rules:
+  - alert: BlackboxProbeFailed
+    expr: probe_success == 0
+    for: 1m
+    annotations:
+      title: 'Instance {{ $labels.instance }} down'
+      description: '{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute.'
+    labels:
+      severity: 'critical'
+
+  - alert: BlackboxProbeDurationTooLong
+    expr: avg_over_time(probe_duration_seconds[1m]) > 0.1
+    for: 1m
+    annotations:
+      title: 'Instance {{ $labels.instance }} down'
+      description: '{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute.'
+    labels:
+      severity: 'warning'
+
+- name: node_exporter_alerts
+  rules:
+  - alert: HostOutOfMemory
+    expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+    for: 2m
+    annotations:
+      summary: 'Host out of memory (instance {{ $labels.instance }})'
+      description: 'Node memory is filling up (< 10% left)\n  VALUE = {{ $value }}'
+    labels:
+      severity: 'critical'
+
+  - alert: HostHighCpuLoad
+    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+    for: 0m
+    labels:
+      severity: 'critical'
+    annotations:
+      summary: 'Host high CPU load (instance {{ $labels.instance }})'
+      description: 'CPU load is > 80%\n  VALUE = {{ $value }}'
+
+  - alert: HostUnusualNetworkThroughputIn
+    expr: sum by (instance) (rate(node_network_receive_bytes_total[2m])) / 1024 / 1024 > 100
+    for: 5m
+    annotations:
+      summary: 'Host unusual network throughput in (instance {{ $labels.instance }})'
+      description: 'Host network interfaces are probably receiving too much data (> 100 MB/s)\n  VALUE = {{ $value }}'
+    labels:
+      severity: warning
+
+  - alert: HostUnusualNetworkThroughputOut
+    expr: sum by (instance) (rate(node_network_transmit_bytes_total[2m])) / 1024 / 1024 > 100
+    for: 5m
+    annotations:
+      summary: 'Host unusual network throughput out (instance {{ $labels.instance }})'
+      description: 'Host network interfaces are probably sending too much data (> 100 MB/s)\n  VALUE = {{ $value }}'
+    labels:
+      severity: 'warning'
+
+- name: sla_alerts
+  rules:
+  - alert: SlaPercentageTooLow
+    expr: ((86300-delta(downtime[24h]))/86400)*100 < 95
+    for: 1m
+    annotations:
+      title: 'Sla percentage per 24h became too low'
+      description: 'Sla percentage per 24h is {{ $value }}%, but it should be >= 95%'
+    labels:
+      severity: 'critical'
+
+  - alert: UserScenarioApiLatencyTooBig
+    expr: exporter_api_latency > 0.1
+    for: 1m
+    annotations:
+      title: 'User scenario api request has a bigger latency than we expected'
+      description: 'User scenario api request has a latency {{ $value }}, but it should be <= 0.1'
+    labels:
+      severity: 'critical'
+
+  - alert: UserScenarioFailedTotalCountTooBig
+    expr: (exporter_api_requests_failed_total/ exporter_api_requests_total) > 0.1
+    for: 1m
+    annotations:
+      title: 'User scenario api requests failed total increased to 0.1'
+      description: 'User scenario api requests failed total increased to {{ $value }}, but it should be <= 0.1'
+    labels:
+      severity: 'critical'
+
+  - alert: NoDutiesToday
+    expr: exporter_today_duty_total == 0
+    for: 1m
+    annotations:
+      title: 'No duties today'
+      description: 'No duty for the team {{ $labels.team }}'
+    labels:
+      severity: 'warning'

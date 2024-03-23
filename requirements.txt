@@ -1,0 +1,5 @@
+setuptools~=65.5.1
+httpx~=0.25.0
+environs~=9.5.0
+prometheus-client==0.17.1
+requests~=2.31.0
